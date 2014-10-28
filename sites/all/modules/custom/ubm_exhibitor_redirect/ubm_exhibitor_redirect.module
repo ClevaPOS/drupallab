@@ -1,0 +1,22 @@
+<?php
+
+/*
+ * Implement hook_user_login()
+ *
+*/
+function ubm_exhibitor_redirect_user_login(&$edit, $account) {
+  if (!isset($_POST['form_id']) || $_POST['form_id'] != 'user_pass_reset') {
+   if(in_array('exhibitor', $account->roles)) {
+      	$_GET['destination'] = 'gated-content-area';
+    }
+  }
+}
+
+
+/*
+ * Implement hook_node_view()
+ *
+*/
+function ubm_exhibitor_redirect_node_view($node, $view_mode, $langcode) {  
+
+}
