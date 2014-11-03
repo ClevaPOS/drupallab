@@ -1,0 +1,3 @@
+name = UBM Exhibitor Redirect
+description = Redirect exbitor when loggied in
+core = 7.x
