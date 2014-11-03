@@ -9,7 +9,7 @@ CONTENTS OF THIS FILE
  * Developing for Drupal
 
 ABOUT DRUPAL
-------------
+-----------
 
 Drupal is an open source content management platform supporting a variety of
 websites ranging from personal weblogs to large community-driven websites. For
