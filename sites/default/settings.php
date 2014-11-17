@@ -217,7 +217,7 @@ $databases = array (
     array (
       'database' => 'lab',
       'username' => 'root',
-      'password' => 'root',
+      'password' => '',
       'host' => 'localhost',
       'port' => '',
       'driver' => 'mysql',
