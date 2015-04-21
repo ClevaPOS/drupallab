@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+function cruk_stats_schema() {
+  $schema['screening_eligibility_data'] = array(
+    'description' => 'Screening eligibility data table.',
+    'fields' => array(
+      'sid' => array(
+        'description' => 'Primary ID',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+
+      'gender' => array(
+        'type' => 'varchar',
+        'length' => '20',
+        'not null' => TRUE,
+      ),
+
+      'country' => array(
+        'type' => 'varchar',
+        'length' => '100',
+        'not null' => TRUE,
+      ),
+
+      'age_range' => array(
+        'type' => 'varchar',
+        'length' => '20',
+        'not null' => TRUE,
+      ),
+
+      'cancer_type' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+
+      'eligibility' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+
+      'answer_body' => array(
+        'type' => 'text',
+        'length' => '65000',
+        'not null' => TRUE,
+      ),
+      
+      'logic' => array(
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('sid'),
+  );
+  return $schema;
+}

@@ -1,0 +1,13 @@
+<?php
+
+
+function ubm_live_datebox_uninstall(){
+	$regions_field_settings = variable_get('ubm_live_datebox_regions_setting','');
+    $settings_keys = array_keys($regions_field_settings);
+    foreach($settings_keys as $key){
+    	variable_del('ubm_live_regions_datebox_field_'.$key);
+    }
+
+    variable_del('ubm_live_datebox_name_fieldset');
+    variable_del('ubm_live_datebox_regions_setting');
+} 

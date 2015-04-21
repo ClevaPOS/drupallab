@@ -1,0 +1,414 @@
+
+<?php
+
+/**
+ *  Implementation of hook_menu()
+ */
+
+function ctool_ajax_form_popup_menu(){
+
+    $items['ctool_ajax_form_popup'] = array(
+        'title' => 'CTOOL AJAX FORM DEMO',
+        'page callback' => 'ctool_ajax_form_popup_page',
+        'access callback' => TRUE,
+        'type' => MENU_NORMAL_ITEM,
+    );
+
+    $items['ctool_ajax_form_popup/%ctools_js/animal'] = array(
+      'title' => 'Animal',
+      'page callback' => 'ctool_ajax_form_popup_animal',
+      'page arguments' => array(1),
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+    );
+
+    return $items;
+  
+}
+
+
+function ctool_ajax_form_popup_page(){
+
+
+    ctools_include('ajax');
+    ctools_include('modal');
+
+    ctools_modal_add_js();
+
+    $sample_style = array(
+        'ctools-sample-style' => array(
+            'modalSize' => array(
+                'type' => 'fixed',
+                'width' => 500,
+                'height' => 300,
+                'addWidth' =>20,
+                'addHeight' => 15,
+            ),
+            'modalOptions' => array(
+                'opacity' => .5,
+                'background-color' => '#000',
+            ),
+            'animation' => 'fadeIn',
+            'modalTheme' => 'CToolsSampleModal',
+            'throbber' => theme('image',array('path'=> ctools_image_path('ajax-loader.gif','ctool_ajax_form_popup'),
+                                            'alt'=>t('Loading'),
+                                            'title' => t('Loading'))),
+        ),
+    );
+
+
+    drupal_add_js($sample_style,'setting');
+    drupal_add_js('ctools-ajax-sample','ctool_ajax_form_popup');
+    drupal_add_css('ctools-ajax-sample','ctool_ajax_form_popup');
+
+    $links[] = l(t('Wizard (no modal)'), 'ctool_ajax_form_popup/nojs/animal');
+    $links[] = ctools_modal_text_button(t('Wizard (default modal)'), 'ctool_ajax_form_popup/nojs/animal', t('Pick an animal'));
+    $links[] = ctools_modal_text_button(t('Wizard (custom modal)'), 'ctool_ajax_form_popup/nojs/animal', t('Pick an animal'),  'ctools-modal-ctools-sample-style');
+
+    $output = theme('item_list', array('items' => $links, 'title' => t('Actions')));
+    $output .= theme('ctool_ajax_form_popup_container', array('content' => '<h1>' . t('Sample Content') . '</h1>'));
+
+
+
+    return array('markup' => array('#markup' => $output));
+
+}
+
+/**
+ * Implementation of hook_theme()
+ *
+ * Render some basic output for this module.
+ */
+function ctool_ajax_form_popup_theme() {
+  return array(
+    // Sample theme functions.
+    'ctool_ajax_form_popup_container' => array(
+      'arguments' => array('content' => NULL),
+    ),
+  );
+}
+
+
+/**
+ * Theme function for main rendered output.
+ */
+function ctool_ajax_form_popup_container($vars) {
+  $output = '<div id="ctools-sample">';
+  $output .= $vars['content'];
+  $output .= '</div>';
+
+  return $output;
+}
+
+function ctool_ajax_form_popup_animal($js = NULL, $step = NULL) {
+    if($js){
+        ctools_include('modal');
+        ctools_include('ajax');
+    }
+
+    $form_info = array(
+        'id' => 'animals',
+        'path' => "ctool_ajax_form_popup/".($js ? 'ajax' : 'nojs' ) . "/animal/%step",
+        'show trail' => TRUE,
+        'show back' => TRUE,
+        'show cancel' => TRUE,
+        'show return' => FALSE,
+        'next callback'=> 'ctool_ajax_form_popup_wizard_next',
+        'finish callback' => 'ctool_ajax_form_popup_wizard_finish',
+        'cancel callback' => 'ctool_ajax_form_popup_wizard_cancel',
+        'order' => array(
+            'start' => t('Choose Animal'),
+        ),
+        'forms' => array(
+            'start' => array(
+                'form id' => 'ctool_ajax_form_popup_start'
+            ),
+        ),
+    );
+
+
+    $object_id = 1;
+
+    if(empty($step)){
+        // We reset the form when $step is NULL because that means they have
+        // for whatever reason started over.
+        ctool_ajax_form_popup_cache_clear($object_id);
+        $step = 'start';
+    }
+
+    // This automatically gets defaults if there wasn't anything saved.
+    $object = ctool_ajax_form_popup_cache_get($object_id);
+    $animals = ctool_ajax_form_popup_animals();
+
+    if(empty($animals[$object->type])){
+        $object->type = 'unknown';
+    }
+
+    if($object->type == 'unknown'){
+        $form_info['order']['unknown'] = t('Configure Animals');
+        $form_info['forms']['unknown'] = array('form id' => 'nothing');
+    } else {
+        $form_info['order'][$object->type] = $animals[$object->type]['config title'];
+    }
+
+    foreach($animals as $id => $animal){
+        $form_info['forms'][$id] = array(
+            'form id' => $animals[$id]['form']
+        );
+    }
+
+    $form_state = array(
+        'ajax' => $js,
+        'object_id' => $object,
+        'object' => &$object,
+    );
+
+    ctools_include('wizard');
+    $form = ctools_wizard_multistep_form($form_info, $step, $form_state);
+    $output = drupal_render($form);
+
+
+  // If $output is FALSE, there was no actual form.
+  if ($js) {
+    error_log('is js');
+    // If javascript is active, we have to use a render array.
+    $commands = array();
+    if ($output === FALSE || !empty($form_state['complete'])) {
+      // Dismiss the modal.
+      $commands[] = ajax_command_html('#ctools-sample', $animal);
+      $commands[] = ctools_modal_command_dismiss();
+    }
+    else if (!empty($form_state['cancel'])) {
+      // If cancelling, return to the activity.
+      $commands[] = ctools_modal_command_dismiss();
+    }
+    else {
+      $commands = ctools_modal_form_render($form_state, $output);
+    }
+    ajax_render($commands);
+    exit;
+  }
+  else {
+    if ($output === FALSE || !empty($form_state['complete'])) {
+      return $animal;
+    }
+    else if (!empty($form_state['cancel'])) {
+      drupal_goto('ctool_ajax_form_popup');
+    }
+    else {
+      return $output;
+    }
+  }
+
+}
+
+function ctool_ajax_form_popup_animals(){
+    return array(
+        'sheep' => array(
+            'title' => t('Sheep'),
+            'config title' => t('Configure Sheep'),
+            'form' => 'ctool_ajax_form_popup_configure_sheep',
+            'output' => 'ctool_ajax_form_popup_show_sheep',
+        ),
+        'lizard' => array(
+            'title' => t('Lizard'),
+            'config title' => t('Configure Lizard'),
+            'form' => 'ctool_ajax_form_popup_configure_lizard',
+            'output' => 'ctool_ajax_form_popup_show_lizard',
+        ),
+        'raptor' => array(
+            'title' => t('Raptor'),
+            'config title' => t('Configure Raptor'),
+            'form' => 'ctool_ajax_form_popup_configure_raptor',
+            'output' => 'ctool_ajax_form_popup_show_raptor',
+        ),
+
+    );
+     
+}
+
+
+function ctool_ajax_form_popup_cache_clear($id){
+    ctools_include('object-cache');
+    ctools_object_cache_clear('ctool_ajax_form_popup', $id);
+}
+
+
+function ctool_ajax_form_popup_cache_set($id, $object) {
+  ctools_include('object-cache');
+  ctools_object_cache_set('ctool_ajax_form_popup', $id, $object);
+}
+
+
+
+/**
+ * Get the current object from the cache, or default.
+ */
+function ctool_ajax_form_popup_cache_get($id) {
+  ctools_include('object-cache');
+  $object = ctools_object_cache_get('ctool_ajax_form_popup', $id);
+  if (!$object) {
+    // Create a default object.
+    $object = new stdClass;
+    $object->type = 'unknown';
+    $object->name = '';
+  }
+
+  return $object;
+}
+
+function ctool_ajax_form_popup_wizard_next(&$form_state) {
+    ctool_ajax_form_popup_cache_set($form_state['object_id'], $form_state['object']);
+}
+
+function ctool_ajax_form_popup_wizard_finish(&$form_state) {
+  $form_state['complete'] = TRUE;
+}
+
+/**
+ * Handle the 'cancel' click on the add/edit pane form wizard.
+ */
+function ctool_ajax_form_popup_wizard_cancel(&$form_state) {
+  $form_state['cancel'] = TRUE;
+}
+
+function ctool_ajax_form_popup_start($form, &$form_state) {
+  $form_state['title'] = t('Choose animal');
+
+  $animals = ctool_ajax_form_popup_animals();
+  foreach ($animals as $id => $animal) {
+    $options[$id] = $animal['title'];
+  }
+
+  $form['type'] = array(
+    '#title' => t('Choose your animal'),
+    '#type' => 'radios',
+    '#options' => $options,
+    '#default_value' => $form_state['object']->type,
+    '#required' => TRUE,
+  );
+
+  return $form;
+}
+
+function ctool_ajax_form_popup_start_submit($form, &$form_state) {
+    $form_state['object']->type = $form_state['values']['type'];
+    // Override where to go next based on the animal selected.
+    $form_state['clicked_button']['#next'] = $form_state['values']['type'];
+}
+
+ 
+function ctool_ajax_form_popup_configure_sheep($form, &$form_state) {
+  $form_state['title'] = t('Configure sheep');
+
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name your sheep'),
+    '#default_value' => $form_state['object']->name,
+    '#required' => TRUE,
+  );
+
+  $form['sheep'] = array(
+    '#title' => t('What kind of sheep'),
+    '#type' => 'radios',
+    '#options' => array(
+      t('Wensleydale') => t('Wensleydale'),
+      t('Merino') => t('Merino'),
+      t('Corriedale') => t('Coriedale'),
+    ),
+    '#default_value' => !empty($form_state['object']->sheep) ? $form_state['object']->sheep : '',
+    '#required' => TRUE,
+  );
+  return $form;
+}
+
+function ctool_ajax_form_popup_configure_sheep_submit(&$form, &$form_state) {
+  $form_state['object']->name = $form_state['values']['name'];
+  $form_state['object']->sheep = $form_state['values']['sheep'];
+}
+
+
+function ctool_ajax_form_popup_show_sheep($object) {
+  return t('You have a @type sheep named "@name".', array(
+    '@type' => $object->sheep,
+    '@name' => $object->name,
+  ));
+}
+
+function ctool_ajax_form_popup_configure_lizard($form, &$form_state) {
+  $form_state['title'] = t('Configure lizard');
+
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name your lizard'),
+    '#default_value' => $form_state['object']->name,
+    '#required' => TRUE,
+  );
+
+  $form['lizard'] = array(
+    '#title' => t('Venomous'),
+    '#type' => 'checkbox',
+    '#default_value' => !empty($form_state['object']->lizard),
+  );
+  return $form;
+}
+
+
+function ctool_ajax_form_popup_show_lizard($object) {
+  return t('You have a @type lizard named "@name".', array(
+    '@type' => empty($object->lizard) ? t('non-venomous') : t('venomous'),
+    '@name' => $object->name,
+  ));
+}
+
+
+function ctool_ajax_form_popup_configure_lizard_submit(&$form, &$form_state) {
+  $form_state['object']->name = $form_state['values']['name'];
+  $form_state['object']->lizard = $form_state['values']['lizard'];
+}
+
+
+function ctool_ajax_form_popup_configure_raptor($form, &$form_state) {
+  $form_state['title'] = t('Configure raptor');
+
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name your raptor'),
+    '#default_value' => $form_state['object']->name,
+    '#required' => TRUE,
+  );
+
+  $form['raptor'] = array(
+    '#title' => t('What kind of raptor'),
+    '#type' => 'radios',
+    '#options' => array(
+      t('Eagle') => t('Eagle'),
+      t('Hawk') => t('Hawk'),
+      t('Owl') => t('Owl'),
+      t('Buzzard') => t('Buzzard'),
+    ),
+    '#default_value' => !empty($form_state['object']->raptor) ? $form_state['object']->raptor : '',
+    '#required' => TRUE,
+  );
+
+  $form['domesticated'] = array(
+    '#title' => t('Domesticated'),
+    '#type' => 'checkbox',
+    '#default_value' => !empty($form_state['object']->domesticated),
+  );
+  return $form;
+}
+
+function ctool_ajax_form_popup_configure_raptor_submit(&$form, &$form_state) {
+  $form_state['object']->name = $form_state['values']['name'];
+  $form_state['object']->raptor = $form_state['values']['raptor'];
+  $form_state['object']->domesticated = $form_state['values']['domesticated'];
+}
+
+function ctool_ajax_form_popup_show_raptor($object) {
+  return t('You have a @type @raptor named "@name".', array(
+    '@type' => empty($object->domesticated) ? t('wild') : t('domesticated'),
+    '@raptor' => $object->raptor,
+    '@name' => $object->name,
+  ));
+}

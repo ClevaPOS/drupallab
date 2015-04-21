@@ -11,3 +11,67 @@ body.admin-menu .navbar-fixed-top {
   top: 20px;
   z-index: 499;
 }
+
+
+/* Pane Heading Styles */
+
+.mypanestyles-theme-pane .pane-heading-default {
+  font-weight: normal;
+}
+
+.mypanestyles-theme-pane .pane-heading-secondary {
+  font-weight: bold;
+}
+
+.mypanestyles-theme-pane .pane-heading-tertiary {
+  font-variant: small-caps;
+}
+
+/* Pane styles */
+
+.mypanestyles-theme-pane {
+  padding: 1em 1em 1em 1em;
+}
+.mypanestyles-theme-pane h2 {
+  padding: 0;
+  margin: 0;
+}
+.mypanestyles-theme-pane.pane-reverse {
+  background-color: #222222;
+  color: #FFFFFF;
+}
+
+.mypanestyles-theme-pane.callout-orange {
+  background-color: #FFB380;
+  color: black;
+}
+
+.mypanestyles-theme-pane.callout-blue {
+  background-color: #80CCFF;
+  color: black;
+}
+
+.mypanestyles-theme-pane.pane-nostyle {
+  background-color: transparent;
+  color: #000000;
+  border-width: 0px;
+}
+
+.mypanestyles-theme-pane.pane-patterned {
+  background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAHElEQVQIW2M8c+bMfxMTE0YGKIAzMARgKjFUAABgFQgFXMJ+agAAAABJRU5ErkJggg==) repeat;
+}
+
+/* Pane Heading Styles */
+
+.mypanestyles-theme-pane .pane-heading-default {
+  font-weight: normal;
+}
+
+.mypanestyles-theme-pane .pane-heading-secondary {
+  font-weight: bold;
+}
+
+.mypanestyles-theme-pane .pane-heading-tertiary {
+  font-variant: small-caps;
+}
+

@@ -1,0 +1,6 @@
+name = DateBox
+description = Set Date Show for different Region
+core = 7.x
+
+package = UBMLive
+version = "7.x-1.0"

@@ -1,0 +1,10 @@
+name = Ctool Ajax Login
+description = Shows how to use the power of Chaos AJAX.
+package = Pro Development
+version = "7.x-1.0"
+
+
+
+core = 7.x
+
+dependencies[] = ctools

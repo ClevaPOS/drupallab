@@ -1,0 +1,227 @@
+<?php
+
+
+function ubm_live_datebox_menu(){
+    $item['node/add/datebox'] = array(
+        'title' => 'Set Show Date',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('ubm_live_datebox_form'),
+        'access callback' => TRUE,
+        'type' => MENU_NORMAL_ITEM,
+
+
+    );
+    return $item;
+}
+
+function ubm_live_datebox_form($form, &$form_state, $no_js_use = FALSE) {
+
+    $path = drupal_get_path('module', 'ubm_live_datebox');
+    drupal_add_js($path . '/js/ubm_live_datebox.js');
+    //drupal_add_css($path.'/css/datebox.js');
+
+    $form['ubm_live_datebox_description'] = array(
+        '#markup' => '<div>' . t('This shows an add-more and a remove-last button. The <a href="!ajax">AJAX version</a> does it without page reloads; the <a href="!multistep">non-js version</a> is the same code but simulates a non-javascript environment, showing it with page reloads.',array('!ajax' => url('examples/ajax_example/add_more'), '!multistep' => url('examples/ajax_example/add_more_no_js')))
+            . '</div>',
+    );
+
+  
+    $form['#tree'] = TRUE;
+    $form['ubm_live_datebox_name_fieldset']= array(
+        '#title' => t('Regions'),
+        '#type' => 'fieldset',
+        '#prefix' => '<div id="regions-fieldset-wrapper">',
+        '#suffix' => '</div>',
+    );
+
+  
+    $counter_set = array();
+    $regions_setting = variable_get('ubm_live_datebox_regions_setting','');
+
+    if(!empty($regions_setting)){
+        $form_state['element_counter'] = $regions_setting;
+    }else{
+        if(!isset($form_state['element_counter'])){
+            $form_state['element_counter'][] = 0;
+        }
+    }
+
+
+    $build_counter = $form_state['element_counter'];
+
+    
+    foreach($build_counter as $key => $value){
+        $setting_data = variable_get('ubm_live_regions_datebox_field_'.$value);
+        $form['ubm_live_datebox_name_fieldset'][$value]['container']= array(
+            '#markup' => '<div id="region-'.$value.'"">',
+        );
+
+
+        $form['ubm_live_datebox_name_fieldset'][$value]['region']= array(
+            '#title' => t('Region'),
+            '#type' => 'textfield',
+            '#default_value' => isset($setting_data)?$setting_data['region']:'',
+        );
+
+        $form['ubm_live_datebox_name_fieldset'][$value]['url']= array(
+            '#title' => t('URL'),
+            '#type' => 'textfield',
+            '#default_value' => isset($setting_data)?$setting_data['url']:'',
+        );
+
+        $form['ubm_live_datebox_name_fieldset'][$value]['show_date']= array(
+            '#title' => t('Date'),
+            '#type' => 'textfield',
+            '#default_value' => isset($setting_data)?$setting_data['show_date']:'',
+        );
+
+        $form['ubm_live_datebox_name_fieldset'][$value]['location']= array(
+            '#title' => t('Location'),
+            '#type' => 'textfield',
+            '#default_value' => isset($setting_data)?$setting_data['location']:'',
+
+        );
+
+        $form['ubm_live_datebox_name_fieldset'][$value]['button'] = array(
+            '#prefix' =>'<span class="clear-btn">',
+            '#suffix' =>'</span>',
+            '#type' => 'button',
+            '#name' => $value,
+            '#value' => t('Clear'),    
+        );
+
+        $form['ubm_live_datebox_name_fieldset'][$value]['remove']= array(
+            '#type' => 'submit',
+            '#value' => t('Remove'),
+            '#name' => $value,
+            '#submit' => array('ubm_live_datebox_remove_region'),
+            '#ajax' => array(
+                'callback' => 'ubm_live_datebox_ajax_callback',
+                'wrapper'   => 'regions-fieldset-wrapper',
+            ),   
+        );
+
+        $form['ubm_live_datebox_name_fieldset'][$value]['end_region']= array(
+            '#markup' => '</div>',
+        );
+
+
+     
+    }
+
+
+    $form['submit_add_more'] = array(
+        '#type' => 'submit',
+        '#value' => t('Add More'),
+        '#submit' => array('ubm_live_datebox_add_more_region'),
+        '#ajax' => array(
+            'callback'  => 'ubm_live_datebox_ajax_callback',
+            'wrapper'   => 'regions-fieldset-wrapper',
+        ),
+    );
+
+   
+
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Submit'),    
+    );
+
+    return $form;
+
+}
+
+
+
+function ubm_live_datebox_add_more_region($form, &$form_state){
+    $list_key =  $form_state['element_counter'];
+    $key = end($list_key);
+    $value =  $form_state['element_counter'][$key];
+    $value++;
+    $form_state['element_counter'][$value] = $value;
+    variable_set('ubm_live_datebox_regions_setting',$form_state['element_counter']);
+    $form_state['rebuild'] = TRUE;
+}
+
+function ubm_live_datebox_remove_region($form, &$form_state){
+
+    if(sizeof($form_state['element_counter']) > 1){
+        $button = $form_state['clicked_button']['#name'];
+        $list_key =  $form_state['element_counter'];
+        $key = array_keys($list_key,$button);
+        unset($form_state['element_counter'][$key[0]]);
+        variable_del('ubm_live_regions_datebox_field_'.$key[0]);
+        variable_set('ubm_live_datebox_regions_setting',$form_state['element_counter']);
+
+    }
+  
+    $form_state['rebuild'] = TRUE;
+
+}
+
+
+function ubm_live_datebox_form_submit($form, &$form_state){
+    $regions_setting = $form_state['element_counter'];
+    $regions_field_settings = $form_state['values']['ubm_live_datebox_name_fieldset'];
+    variable_set('ubm_live_datebox_regions_setting',$regions_setting);
+    $settings_keys = array_keys($regions_field_settings);
+    foreach($settings_keys as $key){
+        variable_set('ubm_live_regions_datebox_field_'.$key,$regions_field_settings[$key]);
+    }
+
+    drupal_set_message('Region Settting has been saved');
+
+}
+
+
+
+/**
+ * Callback for both ajax-enabled buttons.
+ *
+ * Selects and returns the fieldset with the names in it.
+ */
+function ubm_live_datebox_ajax_callback($form, $form_state) {
+  return $form['ubm_live_datebox_name_fieldset'];
+}
+
+/**
+ * Submit handler for the "add-one-more" button.
+ *
+ * Increments the max counter and causes a rebuild.
+ */
+function ubm_live_datebox_add_one($form, &$form_state) {
+  $form_state['num_names']++;
+  $form_state['rebuild'] = TRUE;
+}
+
+
+
+
+
+
+/**
+ * Submit handler for the "remove one" button.
+ *
+ * Decrements the max counter and causes a form rebuild.
+ */
+// function ubm_live_datebox_remove_one($form, &$form_state) {
+//   dpm($form_state);
+//   if ($form_state['num_names'] > 1) {
+//     $form_state['num_names']--;
+//   }
+//   $form_state['rebuild'] = TRUE;
+// }
+
+/**
+ * Final submit handler.
+ *
+ * Reports what values were finally set.
+ */
+function ubm_live_datebox_submit($form, &$form_state) {
+  $output = t('These people are coming to the picnic: @names',
+    array(
+      '@names' => implode(', ', $form_state['values']['ubm_live_datebox_name_fieldset']['name']),
+    )
+  );
+}
+

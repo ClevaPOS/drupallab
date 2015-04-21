@@ -1,0 +1,11 @@
+name = "Variable debug"
+description = "Checks your variable table for rouge and orphaned variables"
+core = 7.x
+package = Development
+
+; Information added by drupal.org packaging script on 2013-05-23
+version = "7.x-1.1"
+core = "7.x"
+project = "variable_debug"
+datestamp = "1369317856"
+

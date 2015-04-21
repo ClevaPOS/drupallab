@@ -1,0 +1,145 @@
+<?php
+
+/**
+*  Implementation of hook_menu()
+*/
+function ctool_ajax_login_menu(){
+    $items['ajax_login'] = array(
+        'title' => 'AJAX Login',
+        'menu_name' => 'main-menu',
+        'page callback' => 'ctool_ajax_setup',
+        'access callback' => TRUE,
+        'type' => MENU_NORMAL_ITEM,
+    );
+
+
+    $items['ajax_login/%ctools_js/login'] = array(
+      'title' => 'Login Link',
+      'page callback' => '_ctools_ajax_login_process',
+      'page arguments' => array(1),
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+    );
+
+    $items['ajax_login/%ctools_js/login/%'] = array(
+      'title' => 'Post-Login Action',
+      'page callback' => 'ctools_ajax_login_success',
+      'page arguments' => array(1, 3),
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+  );
+
+    return $items;
+}
+
+
+function ctool_ajax_setup(){
+    global $user;
+    global $base_path;
+
+    ctools_include('ajax');
+    ctools_include('modal');
+
+    ctools_modal_add_js();
+
+    // Create our own javascript that will be used to theme a modal.
+    $sample_style = array(
+        'ctools-sample-style' => array(
+          'modalSize' => array(
+            'type' => 'fixed',
+            'width' => 500,
+            'height' => 300,
+            'addWidth' => 20,
+            'addHeight' => 15,
+          ),
+          'modalOptions' => array(
+            'opacity' => .5,
+            'background-color' => '#000',
+          ),
+          'animation' => 'fadeIn',
+          'modalTheme' => 'CToolsSampleModal',
+          'throbber' => theme('image', array('path' => ctools_image_path('ajax-loader.gif', 'ctools_ajax_login'), 'alt' => t('Loading...'), 'title' => t('Loading'))),
+        ),
+    );
+
+
+    drupal_add_js($sample_style, 'setting');
+
+    ctools_add_js('ctools-ajax-sample', 'ctool_ajax_login');
+    ctools_add_css('ctools-ajax-sample', 'ctool_ajax_login');
+
+    $links = array();
+    // Only show login links to the anonymous user.
+    if ($user->uid == 0) {
+        $links[] = ctools_modal_text_button(t('Modal Login (default style)'), 'ajax_login/nojs/login', t('Login via modal'));
+        // The extra class points to the info in ctools-sample-style which we added
+        // to the settings, prefixed with 'ctools-modal'.
+        $links[] = ctools_modal_text_button(t('Modal Login (custom style)'), 'ajax_login/nojs/login', t('Login via modal'),  'ctools-modal-ctools-sample-style');
+    }
+    $output = theme('item_list', array('items' => $links, 'title' => t('Actions')));
+
+
+    return $output;
+}
+
+
+/**
+ * A modal login callback.
+ */
+function _ctools_ajax_login_process($js = NULL) {
+  // Fall back if $js is not set.
+if (!$js) {
+    return drupal_get_form('user_login');
+  }
+
+  ctools_include('modal');
+  ctools_include('ajax');
+  $form_state = array(
+    'title' => t('Login'),
+    'ajax' => TRUE,
+  );
+  $output = ctools_modal_form_wrapper('user_login', $form_state);
+  if (!empty($form_state['executed'])) {
+    // We'll just overwrite the form output if it was successful.
+
+
+    $output = array();
+    $inplace = ctools_ajax_text_button(t('remain here'), 'ajax_login/nojs/login/inplace', t('Go to your account'));
+    $account = ctools_ajax_text_button(t('your account'), 'ajax_login/nojs/login/user', t('Go to your account'));
+    $output[] = ctools_modal_command_dismiss();
+    $output[] = ctools_ajax_command_reload();
+
+  }
+  print ajax_render($output);
+  exit;
+
+}
+
+
+/**
+ * Post-login processor: should we go to the user account or stay in place?
+ */
+function ctools_ajax_login_success($js, $action) {
+  if (!$js) {
+    // we should never be here out of ajax context
+    return MENU_NOT_FOUND;
+  }
+
+  ctools_include('ajax');
+  ctools_add_js('ajax-responder');
+  $commands = array();
+  if ($action == 'inplace') {
+    // stay here
+    $commands[] = ctools_ajax_command_reload();
+  }
+  else {
+    // bounce bounce
+    $commands[] = ctools_ajax_command_redirect('user');
+  }
+  print ajax_render($commands);
+  exit;
+}
+
+
+
+

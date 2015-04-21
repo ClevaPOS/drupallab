@@ -1,0 +1,6 @@
+<?php
+
+
+function panel_plugin_dev_ctools_plugin_directory($module,$plugin){
+	return 'plugins/'.$plugin;
+}

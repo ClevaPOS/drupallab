@@ -1,0 +1,442 @@
+<?php
+
+/**
+ * @file
+ * Code for the CRUK Clinical trial feature.
+ */
+
+/**
+ * Implements hook_init().
+ */
+function cruk_stats_init() {
+  module_load_include('inc', 'cruk_stats', 'includes/screening_questions');
+  module_load_include('inc', 'cruk_stats', 'includes/screening_answers');
+  $path = drupal_get_path('module', 'cruk_stats');
+  // drupal_add_js($path . '/js/script.js');
+}
+
+/**
+ * Implements hook_page_build().
+ */
+function cruk_stats_page_build(&$page){
+
+  // Get taxonomy tree and encode into Json object. 
+  // $all_cancer_types =  &drupal_static(__FUNCTION__, array());
+  // $all_cancer_types = _taxonomy_options('cancer_type');
+  // $output = json_encode($all_cancer_types);
+
+  // // Add cancer types array json object to js.
+  // drupal_add_js(array('cruk_stats' => array('testvar' => $output)),
+  //  array('type' => 'setting'));
+
+}
+
+
+
+/**
+ * Implements hook_field_formatter_info().
+ * This is to add a custom file formatter for
+ * file upload icon.
+ */
+function cruk_stats_field_formatter_info() {
+  return array(
+    'icon_field_formatter' => array(
+      'label' => t('File icon formatter'),
+      'field types' => array('file'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ * This is to add a custom file formatter for
+ * file upload icon.
+ */
+function cruk_stats_field_formatter_view($entity_type, $entity, $field, $instance, $lang_code, $items, $display) {
+  $elements = array();
+  $icon_directory = drupal_get_path('theme', 'cruk') . '/images/icon';
+  foreach ($items as $delta => $item) {
+    $elements[$delta] = array(
+      '#markup' => theme('file_icon', array('file' => $item, 'icon_directory' => $icon_directory)),
+    );
+  }
+  // dpm($elements);
+  return $elements;
+}
+
+/**
+ * Implementation of hook_menu().
+ *
+ */
+function cruk_stats_menu() {
+
+  $items['cancer-info/cancerstats/'] = array(
+    'title' => t(''),
+    'page callback' => 'get_stats_cancer_type_tax',
+    'access arguments' => array('access content'),
+    'access callback' => TRUE,
+  );
+
+  $items['admin/config/system/stats_visualisation'] = array(
+    'title' => 'Cancer Stats visualisation settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cruk_stats_visualisation_settings_form'),
+    'access arguments' => array('access administration pages'),
+    'access callback' => TRUE,
+  );
+
+  // Screening eligibility - Answers config.
+  $path = drupal_get_path('module', 'cruk_stats') . '/includes';
+  $items['admin/config/content/screening'] = array(
+    'title' => 'Screening Eligibility',
+    'description' => "Add, edit and delete screening eligibility answers.",
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array('access administration pages'),
+    'file' => 'screening_answers.inc',
+    'file path' => $path,
+    'page arguments' => array('screening_eligibility_form'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_form().
+ * 
+ * This form is a configuration panel for the interactive infographics.
+ * We can use this for to override Javascript and CSS files.
+ */
+function cruk_stats_visualisation_settings_form($form, $form_state) {
+  // We want to save our JS file without it being munged.
+  // So we will change this setting, but first we store the old config.
+  $form['old_setting'] =  array(
+    '#type' => 'value',
+    '#value' => variable_get('allow_insecure_uploads', 0),
+  );
+  
+  // We now set it so we can upload JS files.
+  variable_set('allow_insecure_uploads', 1);
+  
+  $form['cruk_stats_enable_visualisation'] = array(
+    '#title' => t('Enable stats visualisation JS'),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('cruk_stats_enable_visualisation', FALSE),
+    '#decription' => t('Should visualisations be rendered automatically')
+  );
+  
+  $form['cruk_stats_visualisation_css_override'] = array(
+    '#type' => 'textarea',
+    '#title' => t('CSS override'),
+    '#description' => t('CSS code for overriding specific visualisation styles'),
+    '#default_value' => variable_get('cruk_stats_visualisation_css_override', ''),
+  );
+  
+  // We want to indicate when we have files already loaded.
+  $form['current_files'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Current Files:'),
+  );
+  
+  $form['current_files']['markup_text'] = array(
+    '#type' => 'markup',
+    '#markup' => '<div>Current JS file: <strong>' . variable_get('cruk_stats_default_js_file_name', 'No JS file') . '</strong></div>'
+    . '<div>Current CSS file: <strong>' . variable_get('cruk_stats_default_css_file_name', 'No CSS file') . '</strong></div>',
+  );
+  
+  $form['cruk_stats_default_js_file'] = array(
+    '#type' => 'managed_file',
+    '#title' => t('Javascript file required by all visualisations'),
+    '#description' => t('This must be an error free JS file'),
+    '#progress_indicator' => 'bar',
+    '#upload_location' => 'public://',
+    '#upload_validators' => array(
+      'file_validate_extensions' => array('js'),
+      // Pass the maximum file size in bytes.
+      'file_validate_size' => array(MAX_FILE_SIZE*1024*1024),
+    ),
+  ); 
+  
+  $form['cruk_stats_default_css_file'] = array(
+    '#type' => 'managed_file',
+    '#title' => t('CSS file required by all visualisations'),
+    '#description' => t('This must be an error free CSS file'),
+    '#progress_indicator' => 'bar',
+    '#upload_location' => 'public://',
+    '#upload_validators' => array(
+      'file_validate_extensions' => array('css'),
+      // Pass the maximum file size in bytes.
+      'file_validate_size' => array(MAX_FILE_SIZE*1024*1024),
+    ),
+  ); 
+  
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save Settings'),
+  );
+  
+  return $form;
+  
+}
+
+/**
+ * Implements hook_submit().
+ */
+function cruk_stats_visualisation_settings_form_validate($form, &$form_state) {
+  // We want to store our uploaded files in the drupal filemanagement system.
+  // First we store our JS file.
+  
+  if (!empty($form_state['values']['cruk_stats_default_js_file'])) {
+    
+    // File field.
+    $file_field = 'cruk_stats_default_js_file';
+
+    // Start our file save our process.
+    $file = file_load($form_state['values'][$file_field]);
+
+    // Save the file as a temporary file.
+    $file->status = FILE_STATUS_PERMANENT;
+
+    // Perform file save actions.
+    file_save($file);
+
+    // Set our values for saving.
+    $form_state['values']['cruk_stats_default_js_file_name'] = $file->filename;
+    $form_state['values']['cruk_stats_default_js_file_path'] = $file->uri;
+  }
+
+  // We now store our CSS file.
+  if (!empty($form_state['values']['cruk_stats_default_css_file'])) {
+    // File field.
+    $file_field = 'cruk_stats_default_css_file';
+
+    // Start our file save our process.
+    $file = file_load($form_state['values'][$file_field]);
+
+    // Save the file as a temporary file.
+    $file->status = FILE_STATUS_PERMANENT;
+
+    // Perform file save actions.
+    file_save($file);
+
+    // Set our values for saving.
+    $form_state['values']['cruk_stats_default_css_file_name'] = $file->filename;
+    $form_state['values']['cruk_stats_default_css_file_path'] = $file->uri;
+  }
+  // Set our old setting back.
+  variable_set('allow_insecure_uploads', $old_setting);
+}
+
+function cruk_stats_visualisation_settings_form_submit($form, &$form_state) {
+  
+  if (!empty($form_state['values']['cruk_stats_enable_visualisation'])) {
+    variable_set('cruk_stats_enable_visualisation', $form_state['values']['cruk_stats_enable_visualisation']);
+  }
+  
+  if (!empty($form_state['values']['cruk_stats_default_js_file_path'])) {
+    variable_set('cruk_stats_default_js_file_path', $form_state['values']['cruk_stats_default_js_file_path']);
+  }
+  
+  if (!empty($form_state['values']['cruk_stats_default_js_file_name'])) {
+    variable_set('cruk_stats_default_js_file_name', $form_state['values']['cruk_stats_default_js_file_name']);
+  }
+  
+  if (!empty($form_state['values']['cruk_stats_default_css_file_path'])) {
+    variable_set('cruk_stats_default_css_file_path', $form_state['values']['cruk_stats_default_css_file_path']);
+  }
+  
+  if (!empty($form_state['values']['cruk_stats_default_css_file_name'])) {
+    variable_set('cruk_stats_default_css_file_name', $form_state['values']['cruk_stats_default_css_file_name']);
+  }
+}
+/**
+ * Implements hook_block_info
+ * Define all blocks provided by the module
+ */
+function cruk_stats_block_info() {
+  $block['cruk_stats_form'] = array(
+    'info' => t('Stats Form'),
+  );
+
+  $block['cruk_stats_search_widget'] = array(
+    'info' => t('Widget to search for Statistics'),
+  );
+
+  $block['cruk_stats_form_screening'] = array(
+    'info' => t('Screening Eligibility'),
+  );
+
+  return $block;
+}
+
+function cruk_stats_block_view($delta = '') {
+
+  switch ($delta) {
+    case 'cruk_stats_form':
+      $block['subject'] = null;
+      $block['content'] = get_cruk_stats_code();
+      break;
+
+    case 'cruk_stats_form_screening':
+      $block['subject'] = null;
+      $block['content'] = drupal_get_form('cruk_stats_form_screening');
+      break;
+
+    case 'cruk_stats_search_widget':
+      $block['subject'] = 
+      '<a href="http://www.cancerresearchuk.org/cancer-info/cancerstats/types/"> 
+      Statistics by cancer type </a>';
+
+      $block['content'] = drupal_get_form('get_cruk_stats_search');
+      
+      break;
+
+  }
+  return $block;
+}
+
+/* 
+ *Screening eligibility form
+ */
+function cruk_stats_form_screening($form, &$form_state) {
+ 
+  $form = array();
+  $form = screening_eligibility_questions_form($form, $form_state);
+  return $form;
+}
+
+function get_cruk_stats_search() {
+  $output = drupal_get_form('get_cruk_stats_search_form');
+  return $output;
+}
+
+
+function get_cruk_stats_search_form($form, &$form_submit){
+
+  $url = "http://www.cancerresearchuk.org/cancer-info/cancerstats/types/";
+  $form['markup'] = array(
+    '#type' => 'markup',
+    '#markup' => t('<p>Statistics and information on cancer incidence, mortality, survival 
+    				and risk factors (cause) by cancer type are presented here. </p>  
+    				<h3> <a href="http://www.cancerresearchuk.org/cancer-info/cancerstats/types/breast">Breast cancer</a></h3>  
+    				<h3> <a href="http://www.cancerresearchuk.org/cancer-info/cancerstats/types/bowel">Bowel cancer </a> </h3>  
+    				<h3> <a href="http://www.cancerresearchuk.org/cancer-info/cancerstats/types/prostate">Prostate cancer</a></h3>  
+    				<h3> <a href="http://www.cancerresearchuk.org/cancer-info/cancerstats/types/lung"> Lung cancer </a></h3> '),
+  );
+
+  $form['keyword'] = array(
+    '#type' => 'textfield',
+    '#title' =>  '',
+    '#size' => 15,
+    '#maxlength' => 128,
+    '#attributes' => array( 'id' => 'stats-edit-textbox', 'autocomplete' => 'Off', 'placeholder' => t('Start typing...')),    
+    '#prefix' => '<div id="stats-cancer-type-widget"><div id="stats-select-bar" class="collapsed">Select a cancer type</div><div id="stats-input-container">',
+    '#suffix' => '<div id="cancer-types-list" class="list-scroll"></div></div></div>',
+  );
+
+  // A select box for cancer type statistic widget 
+  // this will only be visible in mobile. 
+  $all_cancer_types =  &drupal_static(__FUNCTION__, array());
+  $all_cancer_types = _taxonomy_options('cancer_type');
+  asort($all_cancer_types);
+  array_unshift($all_cancer_types , 'Select a cancer type');
+
+  $form['selected'] = array(
+       '#type' => 'select',
+       '#options' =>  $all_cancer_types,
+       '#prefix' => '<div id="stats-input-container-mobile">',
+       '#default_value' => $all_cancer_types[0],
+       '#suffix' => '</div>',
+   );
+
+return $form;
+
+}
+
+
+/**
+ * Returns a array for use with #options in a form field.
+ **/
+function _taxonomy_options($machine_name) {
+  $vocabulary = taxonomy_vocabulary_machine_name_load($machine_name);
+  $tree = taxonomy_get_tree($vocabulary->vid);
+  foreach ($tree as $item) {
+    $options[] = $item->name;
+  }
+  return $options;
+}
+
+function cruk_stats_entity_view($entity, $type, $view_mode, $langcode) {
+  
+  switch ($type) {
+    case 'node':
+
+      if ($entity->type == 'interactive_visual') {
+        // Check that we can use our interactive visual plugin.
+        // If we can we then load the required JS and CSS.
+        $use_plugin = __cruk_stats_check_visual_use(TRUE);
+
+        if ($use_plugin != 'loaded') {
+          // Some debugging to let admins know we did not load the library.
+          // @TODO make this a watchdog error.
+          dpm('The interactive visual library could not be loaded');
+          dpm($entity);
+         }
+      }
+
+      // We want to alter this for the individual files and imaghes.
+      if (($entity->type == 'cruk_article') && ($view_mode == 'cruk_stats_article_accordion')) {
+        //@TODO add code for Graph placeholder.
+      }
+      
+      break;
+
+    default:
+      break;
+  }
+}
+
+ 
+function __cruk_stats_check_visual_use($trigger = FALSE) {
+  // Get our settings for Visualisation.
+  $enabled = variable_get('cruk_stats_enable_visualisation', 0);
+  
+  // Check to see if we can use the visulisation.
+  if (!empty($enabled)) {
+    // Load our JS file
+    $js_file = variable_get('cruk_stats_default_js_file_path', NULL);
+        
+    // Load our CSS file if it exists.
+    $css_file = variable_get('cruk_stats_default_css_file_path', NULL);
+    
+    if (!empty($js_file) && !empty($css_file) && $trigger === TRUE) {
+      // Add our JS file.
+      //drupal_add_js($js_file, 'file');
+      $path = url(variable_get('file_' . file_default_scheme() . '_path', conf_path() . '/files'), array('absolute' => TRUE));
+      drupal_add_js(array(
+        'cruk_stats' => array('jSonPath' => $path . '/')), array('type' => 'setting'));
+      
+      // Add our CSS file.
+      drupal_add_css($css_file, 'file');
+        
+      return 'loaded';
+    }
+    else {
+      return TRUE;
+    }
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ * 
+ */
+function cruk_stats_entity_info_alter(&$entity_info) {
+  $entity_info['node']['view modes']['cruk_stats_article_accordion'] = array(
+    'label' => t('CRUK Stats article accordion'),
+    'custom settings' => TRUE,
+  );
+  
+}

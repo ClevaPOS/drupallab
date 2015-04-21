@@ -1,0 +1,6 @@
+name = Ajax Link Example
+description = Ajax link Example
+core = 7.x
+
+package = Pro Development
+version = "7.x-1.0"

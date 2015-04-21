@@ -1,0 +1,9 @@
+name = Panels Plugin Style Dev
+description = Implement Style Plugin for panel
+
+dependencies[] = panels
+dependencies[] = ctools
+package = Pro Development
+
+core = 7.x
+version = "7.x-1.0"
