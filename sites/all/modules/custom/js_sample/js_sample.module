@@ -1,0 +1,59 @@
+<?php
+
+
+function js_sample_theme(){
+	return array(
+		'my_accordion' => array(
+			'template' => 'accordian',
+			'variables' => array('title' => NULL),
+		),
+	);
+
+}
+
+function js_sample_menu(){
+	$items = array();
+	$items['js_sample/weights'] = array(
+		'title' => 'JS Sample: see weighting in action',
+		'page callback' => 'js_sample_js_weights',
+		'access callback' => TRUE,
+	);
+
+	$items['js_sample/accordian'] = array(
+		'title' => 'JS Example: JQuery UI accordion',
+		'page callback' => 'js_sample_accordion',
+		'access callback' => TRUE,
+	);
+
+	return $items;
+}
+
+
+function js_sample_js_weights(){
+	$path = drupal_get_path('module','js_sample');
+	drupal_add_css($path.'/css/jsweights.css');
+
+	$weights = array(
+		'red' => 100,
+		'blue' => 23,
+		'green' => 3,
+		'brown' => 45,
+		'black' => 5,
+		'purple' => 60,
+	);
+
+	drupal_add_js(array('jsweights' => $weights), array('type' => 'setting'));
+
+	drupal_add_js($path.'/js/red.js',array('weight' => $weights['red']));
+	drupal_add_js($path.'/js/blue.js',array('weight' => $weights['blue']));
+	drupal_add_js($path.'/js/green.js',array('weight' => $weights['green']));
+	drupal_add_js($path.'/js/brown.js',array('weight' => $weights['brown']));
+	drupal_add_js($path.'/js/black.js',array('weight' => $weights['black']));
+	drupal_add_js($path.'/js/purple.js',array('weight' => $weights['purple']));
+
+	$output = '<div id="js-weights"></div>';
+
+
+	return $output;
+}
+

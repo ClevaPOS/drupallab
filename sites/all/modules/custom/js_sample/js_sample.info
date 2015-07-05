@@ -1,0 +1,6 @@
+name = Javascript Sample
+description = Sample Javascript behavior drupal
+core = 7.x
+
+package = Pro Development
+

@@ -1,0 +1,1 @@
+[29-Jun-2015 21:40:07 Europe/London] PHP Fatal error:  Call to undefined method HelloWorldTests::drupallGet() in /Users/thelinhuk/Sites/drupallab/sites/all/modules/custom/helloworld/helloworld.test on line 24

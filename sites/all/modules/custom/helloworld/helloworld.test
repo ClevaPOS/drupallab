@@ -1,0 +1,75 @@
+<?php
+/**
+ * @file
+ * Tests for the hello world module.
+ */
+
+class HelloWorldTests extends DrupalWebTestCase {
+  protected $privileged_user;
+
+  public static function getInfo(){
+      return array(
+        'name' => 'HelloWorld',
+        'description' => 'Tests for the HelloWorld module',
+        'group' => 'Hello World Group',
+
+      );
+  }
+
+  public function setUp(){
+    parent::setUp(array('helloworld'));
+  }
+
+  public function testHelloWorld(){
+    $this->drupalGet('helloworld');
+    $this->assertText('Hello World. Welcome to Drupal.','The page content is prepresent');
+  }
+
+  public function testForms(){
+    $this->drupalGet('helloworld/form');
+    $this->assertFieldByXpath("//form[@id='helloworld-cake-form']//input[@name='name']");
+    $this->assertFieldByName('choice','cake','The choice field is present');
+
+    $data = array(
+      'name' => '',
+      'choice' => 'chicken',
+    );
+
+    $this->drupalPost('helloworld/form',$data,'Submit');
+    $this->assertText('Your name field is required','Name field is requried');
+
+
+
+    $data = array(
+      'name' => 'joe',
+      'choice' => 'cake',
+    );
+
+    $this->drupalPost('helloworld/form',$data,'Equivocate');
+    $this->assertText('Make up your mind!','Name field is requried');
+
+
+    $data = array(
+      'name' => 'Joe',
+      'choice' => 'chicken',
+    );
+
+    $this->drupalPost('helloworld/form',$data,'Submit');
+    $this->assertText('Joe, you chose chicken','Valid Data');
+  }
+
+  public function testAuthorization(){
+    $account = $this->drupalCreateUser(array('administer site configuration'));
+    $this->drupalLogin($account);
+    $this->drupalGet('admin/config/system/site-information');
+  }
+
+} 
+
+
+
+
+
+
+
+

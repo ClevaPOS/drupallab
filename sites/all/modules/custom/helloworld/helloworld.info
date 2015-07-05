@@ -1,0 +1,6 @@
+name = Hello World
+description = An example module to demonstrate using SimpleTest
+core = 7.x
+
+files[] = helloworld.test
+testing_api = 2.x

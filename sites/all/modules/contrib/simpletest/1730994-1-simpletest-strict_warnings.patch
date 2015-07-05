@@ -1,0 +1,35 @@
+From e4c6802d88f3aa393d9107bda2f01274cb4867d7 Mon Sep 17 00:00:00 2001
+From: Pieter Frenssen <pieter@frenssen.be>
+Date: Wed, 15 Aug 2012 08:52:20 +0200
+Subject: [PATCH] Issue #1730994 by pfrenssen: Fixed strict warnings about
+ incompatible method declarations on PHP 5.4.
+
+---
+ drupal_web_test_case.php | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drupal_web_test_case.php b/drupal_web_test_case.php
+index ea08361..1dd8e99 100644
+--- a/drupal_web_test_case.php
++++ b/drupal_web_test_case.php
+@@ -3442,7 +3442,7 @@ class DrupalCloneTestCase extends DrupalWebTestCase {
+     'watchdog',
+   );
+ 
+-  protected function setUpInstall() {
++  protected function setUpInstall(array $modules, $public_files_directory, $private_files_directory, $temp_files_directory) {
+     global $db_prefix;
+ 
+     // Store new database prefix.
+@@ -3466,7 +3466,7 @@ class DrupalCloneTestCase extends DrupalWebTestCase {
+     }
+   }
+ 
+-  protected function setUpVariables() {
++  protected function setUpVariables($clean_url_original) {
+     // Do nothing.
+   }
+ 
+-- 
+1.7.11.4
+

@@ -1,0 +1,1 @@
+[30-Jun-2015 21:29:51 Europe/London] PHP Fatal error:  Call to undefined method HelloWorldTests::assertByXpath() in /Users/thelinhuk/Sites/drupallab/sites/all/modules/custom/helloworld/helloworld.test on line 30

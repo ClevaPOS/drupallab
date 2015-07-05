@@ -1,0 +1,16 @@
+default:
+  context:
+    parameters:
+      screenshots_dir: 'logs/screenshots'
+      credentials:
+        drupal:
+          admin:
+            username: "admin"
+            password: "admin"
+  extensions:
+    Behat\MinkExtension\Extension:
+      base_url: 'http://local.lab'
+      default_session: selenium2
+      javascript_session:  'selenium2'
+      browser_name: 'firefox'
+      selenium2: ~

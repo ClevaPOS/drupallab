@@ -1,0 +1,19 @@
+{
+  "name": "innova",
+  "version": "1.0.0",
+  "author": "Van Pham",
+  "homepage": "http://local.lab",
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "devDependencies": {
+      "grunt-contrib-compass": "v0.9.0",
+      "grunt-contrib-sass": "v0.7.3",
+      "grunt-contrib-watch": "v0.6.1",
+      "grunt-regarde": "0.1.1",
+      "grunt-contrib-livereload": "0.1.2",
+      "grunt-contrib-connect": "0.2.0",
+      "grunt-contrib-jshint": "~0.8"
+  }
+
+}
